@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "required": [
+    "WhoamiResponse",
+    "APIKeysResponse"
+  ],
+  "properties": {
+    "WhoamiResponse": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$ref": "#/definitions/WhoamiResponse"
+    },
+    "APIKeysResponse": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$ref": "#/definitions/APIKeysResponse"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "definitions": {
+    "APIKeysResponse": {
+      "required": [
+        "stripeKey"
+      ],
+      "properties": {
+        "stripeKey": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "WhoamiResponse": {
+      "required": [
+        "sessionAge",
+        "accountId",
+        "email",
+        "firstName",
+        "lastName",
+        "created",
+        "publicKey",
+        "encSymmetricKey",
+        "encPrivateKey",
+        "saltEnc",
+        "isPaymentRequired",
+        "isTrialing",
+        "isVerified",
+        "isAdmin",
+        "trialEnd",
+        "planName",
+        "planId",
+        "canManageTeams",
+        "maxTeamMembers"
+      ],
+      "properties": {
+        "sessionAge": {
+          "type": "integer"
+        },
+        "accountId": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "created": {
+          "type": "integer"
+        },
+        "publicKey": {
+          "type": "string"
+        },
+        "encSymmetricKey": {
+          "type": "string"
+        },
+        "encPrivateKey": {
+          "type": "string"
+        },
+        "saltEnc": {
+          "type": "string"
+        },
+        "isPaymentRequired": {
+          "type": "boolean"
+        },
+        "isTrialing": {
+          "type": "boolean"
+        },
+        "isVerified": {
+          "type": "boolean"
+        },
+        "isAdmin": {
+          "type": "boolean"
+        },
+        "trialEnd": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "planName": {
+          "type": "string"
+        },
+        "planId": {
+          "type": "string"
+        },
+        "canManageTeams": {
+          "type": "boolean"
+        },
+        "maxTeamMembers": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

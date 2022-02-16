@@ -1,11 +1,11 @@
 {
-  "name": "insomnia-api-client",
+  "name": "@getinsomnia/api-client",
   "version": "0.0.1",
   "description": "Client code for the Insomnia API.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "install": "json2ts --unreachableDefinitions=true < schema.json > schema.d.ts"
+    "build": "json2ts --unreachableDefinitions=true < schema.json > schema.d.ts"
   },
   "repository": {
     "type": "git",

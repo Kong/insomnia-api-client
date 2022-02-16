@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "json2ts --unreachableDefinitions=true < schema.json > schema.d.ts"
+    "build": "json2ts --unreachableDefinitions=true < schema.json > schema.ts"
   },
   "repository": {
     "type": "git",

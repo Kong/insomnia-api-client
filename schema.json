@@ -2,7 +2,8 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "required": [
     "WhoamiResponse",
-    "APIKeysResponse"
+    "APIKeysResponse",
+    "GithubOAuthConfigResponse"
   ],
   "properties": {
     "WhoamiResponse": {
@@ -12,6 +13,10 @@
     "APIKeysResponse": {
       "$schema": "http://json-schema.org/draft-04/schema#",
       "$ref": "#/definitions/APIKeysResponse"
+    },
+    "GithubOAuthConfigResponse": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$ref": "#/definitions/GithubOAuthConfigResponse"
     }
   },
   "additionalProperties": false,
@@ -23,6 +28,18 @@
       ],
       "properties": {
         "stripeKey": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "GithubOAuthConfigResponse": {
+      "required": [
+        "clientID"
+      ],
+      "properties": {
+        "clientID": {
           "type": "string"
         }
       },

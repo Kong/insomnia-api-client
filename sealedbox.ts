@@ -17,7 +17,7 @@ export function open(
   sealedbox: Uint8Array,
   pk: Uint8Array,
   sk: Uint8Array,
-): Uint8Array {
+): Uint8Array|null {
   const epk = sealedbox.subarray(0, naclBox.publicKeyLength);
   const data = sealedbox.subarray(naclBox.publicKeyLength);
   return naclBox.open(data, nonce(epk, pk), epk, sk);
@@ -36,6 +36,6 @@ function nonce(epk: Uint8Array, pk: Uint8Array): Uint8Array {
   const data: Uint8Array = new Uint8Array(epk.length + pk.length);
   data.set(epk);
   data.set(pk, epk.length);
-  return blake2b(data, null, naclBox.nonceLength);
+  return blake2b(data, undefined, naclBox.nonceLength);
 };
 

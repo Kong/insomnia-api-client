@@ -24,7 +24,7 @@ export function open(
 };
 
 export function seal(data: Uint8Array, pk: Uint8Array): Uint8Array {
-  const sealedbox = new Uint8Array(naclBox.publicKeyLength + data.length);
+  const sealedbox = new Uint8Array(overheadLength + data.length);
   const ek = naclBox.keyPair();
   const box = naclBox(data, nonce(ek.publicKey, pk), pk, ek.secretKey);
   sealedbox.set(ek.publicKey);

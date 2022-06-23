@@ -1,6 +1,6 @@
 {
   "name": "@getinsomnia/api-client",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Client code for the Insomnia API.",
   "main": "index.js",
   "scripts": {
@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/Kong/insomnia-api-client#readme",
   "dependencies": {
-    "json-schema-to-typescript": "^10.1.5"
+    "blakejs": "^1.2.1",
+    "json-schema-to-typescript": "^10.1.5",
+    "tweetnacl": "^1.0.3"
   }
 }

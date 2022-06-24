@@ -21,6 +21,9 @@ export async function provideBox<T>(baseUri: string, data: T, publicKey: Uint8Ar
   const response = await fetch(`${baseUri}/v1/box/provide`, {
     body: JSON.stringify(body),
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
   });
 
   if (response.status != 200) {
@@ -42,6 +45,9 @@ export async function acquireBox<T>(baseUri: string, publicKey: Uint8Array, secr
   const response = await fetch(`${baseUri}/v1/box/acquire`, {
     body: JSON.stringify(body),
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
   });
 
   if (response.status === 404) {

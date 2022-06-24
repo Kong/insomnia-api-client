@@ -3,7 +3,11 @@
   "required": [
     "WhoamiResponse",
     "APIKeysResponse",
-    "GithubOAuthConfigResponse"
+    "GithubOAuthConfigResponse",
+    "BoxAcquireRequest",
+    "BoxAcquireResponse",
+    "BoxProvideRequest",
+    "BoxProvideResponse"
   ],
   "properties": {
     "WhoamiResponse": {
@@ -17,6 +21,22 @@
     "GithubOAuthConfigResponse": {
       "$schema": "http://json-schema.org/draft-04/schema#",
       "$ref": "#/definitions/GithubOAuthConfigResponse"
+    },
+    "BoxAcquireRequest": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$ref": "#/definitions/BoxAcquireRequest"
+    },
+    "BoxAcquireResponse": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$ref": "#/definitions/BoxAcquireResponse"
+    },
+    "BoxProvideRequest": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$ref": "#/definitions/BoxProvideRequest"
+    },
+    "BoxProvideResponse": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$ref": "#/definitions/BoxProvideResponse"
     }
   },
   "additionalProperties": false,
@@ -31,6 +51,63 @@
           "type": "string"
         }
       },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "BoxAcquireRequest": {
+      "required": [
+        "key"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "media": {
+            "binaryEncoding": "base64"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "BoxAcquireResponse": {
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "string",
+          "media": {
+            "binaryEncoding": "base64"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "BoxProvideRequest": {
+      "required": [
+        "key",
+        "data"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "media": {
+            "binaryEncoding": "base64"
+          }
+        },
+        "data": {
+          "type": "string",
+          "media": {
+            "binaryEncoding": "base64"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "BoxProvideResponse": {
+      "properties": {},
       "additionalProperties": false,
       "type": "object"
     },

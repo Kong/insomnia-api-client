@@ -1,6 +1,8 @@
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import { encodeBase64, decodeBase64 } from '../base64';
 import { BoxAcquireRequest, BoxAcquireResponse, BoxProvideRequest } from '../schema';
 import { open, seal } from '../sealedbox';
+import { globalConfig } from './fetch';
 
 export async function provideBox<T>(baseUri: string, data: T, publicKey: Uint8Array): Promise<void> {
   const enc = new TextEncoder();
@@ -18,19 +20,7 @@ export async function provideBox<T>(baseUri: string, data: T, publicKey: Uint8Ar
   };
 
   // Send request
-  const response = await fetch(`${baseUri}/v1/box/provide`, {
-    body: JSON.stringify(body),
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (response.status != 200) {
-    throw new Error("Request failed");
-  }
-
-  return;
+  await axios.post(`${baseUri}/v1/box/provide`, body, globalConfig);
 }
 
 export async function acquireBox<T>(baseUri: string, publicKey: Uint8Array, secretKey: Uint8Array): Promise<T|null> {
@@ -41,23 +31,20 @@ export async function acquireBox<T>(baseUri: string, publicKey: Uint8Array, secr
     key: await encodeBase64(publicKey),
   };
 
+  let response: AxiosResponse<any>;
   // Send request
-  const response = await fetch(`${baseUri}/v1/box/acquire`, {
-    body: JSON.stringify(body),
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (response.status === 404) {
-    return null;
-  } else if (response.status !== 200) {
-    throw new Error("Request failed");
+  try {
+    response = await axios.post(`${baseUri}/v1/box/acquire`, body, globalConfig);
+  } catch(error) {
+    const axiosError = error as AxiosError
+    if (axiosError.isAxiosError && axiosError.response?.status === 404) {
+      return null;
+    }
+    throw error;
   }
 
   // Decode request as JSON
-  const responseData: BoxAcquireResponse = await response.json();
+  const responseData: BoxAcquireResponse = response.data;
 
   // Decode base64'd string
   const sealedBox = await decodeBase64(responseData.data);

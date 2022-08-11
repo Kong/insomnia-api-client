@@ -7,7 +7,8 @@
     "BoxAcquireRequest",
     "BoxAcquireResponse",
     "BoxProvideRequest",
-    "BoxProvideResponse"
+    "BoxProvideResponse",
+    "SessionsResponse"
   ],
   "properties": {
     "WhoamiResponse": {
@@ -37,6 +38,10 @@
     "BoxProvideResponse": {
       "$schema": "http://json-schema.org/draft-04/schema#",
       "$ref": "#/definitions/BoxProvideResponse"
+    },
+    "SessionsResponse": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$ref": "#/definitions/SessionsResponse"
     }
   },
   "additionalProperties": false,
@@ -118,6 +123,39 @@
       "properties": {
         "clientID": {
           "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Session": {
+      "required": [
+        "id",
+        "created"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "SessionsResponse": {
+      "required": [
+        "sessions"
+      ],
+      "properties": {
+        "sessions": {
+          "items": {
+            "$schema": "http://json-schema.org/draft-04/schema#",
+            "$ref": "#/definitions/Session"
+          },
+          "type": "array"
         }
       },
       "additionalProperties": false,

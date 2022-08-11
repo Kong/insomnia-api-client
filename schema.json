@@ -182,7 +182,8 @@
         "planId",
         "canManageTeams",
         "maxTeamMembers",
-        "passwordSet"
+        "passwordSet",
+        "canUnsetPassword"
       ],
       "properties": {
         "sessionAge": {
@@ -244,6 +245,9 @@
           "type": "integer"
         },
         "passwordSet": {
+          "type": "boolean"
+        },
+        "canUnsetPassword": {
           "type": "boolean"
         }
       },

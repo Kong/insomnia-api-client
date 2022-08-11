@@ -181,7 +181,8 @@
         "planName",
         "planId",
         "canManageTeams",
-        "maxTeamMembers"
+        "maxTeamMembers",
+        "passwordSet"
       ],
       "properties": {
         "sessionAge": {
@@ -241,6 +242,9 @@
         },
         "maxTeamMembers": {
           "type": "integer"
+        },
+        "passwordSet": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false,

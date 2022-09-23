@@ -4,6 +4,9 @@
     "WhoamiResponse",
     "APIKeysResponse",
     "GithubOAuthConfigResponse",
+    "GitHubLinkOAuthBody",
+    "GitHubLoginOAuthBody",
+    "GitHubLoginOAuthResponse",
     "BoxAcquireRequest",
     "BoxAcquireResponse",
     "BoxProvideRequest",
@@ -22,6 +25,18 @@
     "GithubOAuthConfigResponse": {
       "$schema": "http://json-schema.org/draft-04/schema#",
       "$ref": "#/definitions/GithubOAuthConfigResponse"
+    },
+    "GitHubLinkOAuthBody": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$ref": "#/definitions/GitHubLinkOAuthBody"
+    },
+    "GitHubLoginOAuthBody": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$ref": "#/definitions/GitHubLoginOAuthBody"
+    },
+    "GitHubLoginOAuthResponse": {
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "$ref": "#/definitions/GitHubLoginOAuthResponse"
     },
     "BoxAcquireRequest": {
       "$schema": "http://json-schema.org/draft-04/schema#",
@@ -113,6 +128,53 @@
     },
     "BoxProvideResponse": {
       "properties": {},
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "GitHubLinkOAuthBody": {
+      "required": [
+        "code"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "GitHubLoginOAuthBody": {
+      "required": [
+        "code",
+        "useCookies"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "useCookies": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "GitHubLoginOAuthResponse": {
+      "required": [
+        "new_account",
+        "existing_email"
+      ],
+      "properties": {
+        "new_account": {
+          "type": "boolean"
+        },
+        "existing_email": {
+          "type": "string"
+        },
+        "session_key": {
+          "type": "string"
+        }
+      },
       "additionalProperties": false,
       "type": "object"
     },

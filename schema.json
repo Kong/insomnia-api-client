@@ -3,7 +3,7 @@
   "required": [
     "WhoamiResponse",
     "APIKeysResponse",
-    "GithubOAuthConfigResponse",
+    "Auth0OAuthResponse",
     "BoxAcquireRequest",
     "BoxAcquireResponse",
     "BoxProvideRequest",
@@ -19,9 +19,9 @@
       "$schema": "http://json-schema.org/draft-04/schema#",
       "$ref": "#/definitions/APIKeysResponse"
     },
-    "GithubOAuthConfigResponse": {
+    "Auth0OAuthResponse": {
       "$schema": "http://json-schema.org/draft-04/schema#",
-      "$ref": "#/definitions/GithubOAuthConfigResponse"
+      "$ref": "#/definitions/Auth0OAuthResponse"
     },
     "BoxAcquireRequest": {
       "$schema": "http://json-schema.org/draft-04/schema#",
@@ -53,6 +53,25 @@
       ],
       "properties": {
         "stripeKey": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Auth0OAuthResponse": {
+      "required": [
+        "new_account",
+        "existing_email"
+      ],
+      "properties": {
+        "new_account": {
+          "type": "boolean"
+        },
+        "existing_email": {
+          "type": "string"
+        },
+        "session_key": {
           "type": "string"
         }
       },
@@ -113,18 +132,6 @@
     },
     "BoxProvideResponse": {
       "properties": {},
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "GithubOAuthConfigResponse": {
-      "required": [
-        "clientID"
-      ],
-      "properties": {
-        "clientID": {
-          "type": "string"
-        }
-      },
       "additionalProperties": false,
       "type": "object"
     },

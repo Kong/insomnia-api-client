@@ -61,17 +61,17 @@
     },
     "Auth0OAuthResponse": {
       "required": [
-        "new_account",
-        "existing_email"
+        "newAccount",
+        "existingEmail"
       ],
       "properties": {
-        "new_account": {
+        "newAccount": {
           "type": "boolean"
         },
-        "existing_email": {
+        "existingEmail": {
           "type": "string"
         },
-        "session_key": {
+        "sessionKey": {
           "type": "string"
         }
       },

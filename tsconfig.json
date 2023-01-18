@@ -1,6 +1,9 @@
 {
     "compilerOptions": {
         "noEmit": true,
-        "strict": true
+        "strict": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
     }
-}
+  }
+  

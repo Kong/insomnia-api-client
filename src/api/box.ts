@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { encodeBase64, decodeBase64 } from '../base64';
-import { BoxAcquireRequest, BoxAcquireResponse, BoxProvideRequest } from '../schema';
+import { BoxAcquireRequest, BoxAcquireResponse, BoxProvideRequest } from '../generated/schema';
 import { open, seal } from '../sealedbox';
 import { globalConfig } from './fetch';
 

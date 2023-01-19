@@ -115,7 +115,7 @@ function getx(
   const hashIP = Buffer.from(
     crypto
       .createHash(params.hash)
-      .update(Buffer.concat([I, new Buffer(":"), P]))
+      .update(Buffer.concat([I, Buffer.from(":"), P]))
       .digest()
   );
 

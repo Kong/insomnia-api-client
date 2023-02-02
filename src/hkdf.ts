@@ -1,8 +1,4 @@
-//
-// a straightforward implementation of HKDF
-//
-// https://tools.ietf.org/html/rfc5869
-//
+// HKDF - https://tools.ietf.org/html/rfc5869
 import crypto from 'crypto';
 import process from 'process';
 import { Buffer } from 'buffer';
@@ -39,14 +35,14 @@ export class HKDF {
   };
 
   derive(info: Buffer | crypto.BinaryLike, size: number, cb: { (buffer: Buffer): void; (arg0: any): void; }) {
-    var prev = Buffer.alloc(0);
-    var output: Buffer;
-    var buffers = [];
-    var num_blocks = Math.ceil(size / this.hashLength);
+    let prev = Buffer.alloc(0);
+    let output: Buffer;
+    const buffers = [];
+    const num_blocks = Math.ceil(size / this.hashLength);
     info = Buffer.from(info.toString());
 
-    for (var i=0; i<num_blocks; i++) {
-      var hmac = crypto.createHmac(this.hashAlg, this.prk);
+    for (let i=0; i < num_blocks; i++) {
+      const hmac = crypto.createHmac(this.hashAlg, this.prk);
       hmac.update(prev);
       hmac.update(info);
       hmac.update(Buffer.from([i + 1]));

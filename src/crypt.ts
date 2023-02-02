@@ -1,18 +1,13 @@
 import { HKDF } from './hkdf';
 import * as srp from './srp/srp';
 import type { jsbn } from 'node-forge';
-import * as forge from 'node-forge';
+import forge from 'node-forge';
 
 const DEFAULT_BYTE_LENGTH = 32;
 const DEFAULT_PBKDF2_ITERATIONS = 1E5; // 100,000
 
 /**
  * Generate hex signing key used for AES encryption
- *
- * @param pass
- * @param email
- * @param salt
- * @returns {Promise}
  */
 export async function deriveKey (pass: string, email: string, salt: string) {
   const combinedSalt = await _hkdfSalt(salt, email);
@@ -21,10 +16,6 @@ export async function deriveKey (pass: string, email: string, salt: string) {
 
 /**
  * Encrypt with RSA256 public key
- *
- * @param publicKeyJWK
- * @param plaintext
- * @return String
  */
 export function encryptRSAWithJWK (publicKeyJWK: JsonWebKey, plaintext: string) {
   if (publicKeyJWK.alg !== 'RSA-OAEP-256') {
@@ -41,13 +32,14 @@ export function encryptRSAWithJWK (publicKeyJWK: JsonWebKey, plaintext: string) 
 
   const n = _b64UrlToBigInt(publicKeyJWK.n);
   const e = _b64UrlToBigInt(publicKeyJWK.e);
-  // TODO(johnwchadwick): node-forge typings are incomplete
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const publicKey = (forge as any).rsa.setPublicKey(n, e);
+
+  // @ts-expect-error node-forge typings are incomplete
+  const publicKey = forge.rsa.setPublicKey(n, e);
 
   const encrypted = publicKey.encrypt(encodedPlaintext, 'RSA-OAEP', {
     md: forge.md.sha256.create()
   });
+
   return forge.util.bytesToHex(encrypted);
 }
 
@@ -66,9 +58,8 @@ export function decryptRSAWithJWK (privateJWK: JsonWebKey, encryptedBlob: string
   const dQ = _b64UrlToBigInt(privateJWK.dq);
   const qInv = _b64UrlToBigInt(privateJWK.qi);
 
-  // TODO(johnwchadwick): node-forge typings are incomplete
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const privateKey = (forge as any).rsa.setPrivateKey(n, e, d, p, q, dP, dQ, qInv);
+  // @ts-expect-error node-forge typings are incomplete
+  const privateKey = forge.rsa.setPrivateKey(n, e, d, p, q, dP, dQ, qInv);
   const bytes = forge.util.hexToBytes(encryptedBlob);
   const decrypted = privateKey.decrypt(bytes, 'RSA-OAEP', {
     md: forge.md.sha256.create()
@@ -77,7 +68,7 @@ export function decryptRSAWithJWK (privateJWK: JsonWebKey, encryptedBlob: string
   return decodeURIComponent(decrypted);
 }
 
-export function recryptRSAWithJWK (privateJWK: JsonWebKey, publicJWK: JsonWebKey, encryptedBlob: string) {
+export function reEncryptRSAWithJWK (privateJWK: JsonWebKey, publicJWK: JsonWebKey, encryptedBlob: string) {
   const decrypted = decryptRSAWithJWK(privateJWK, encryptedBlob);
   return encryptRSAWithJWK(publicJWK, decrypted);
 }
@@ -107,16 +98,15 @@ export function encryptAES (jwkOrKey: string | JsonWebKey, plaintext: string, ad
 
   return {
     iv: forge.util.bytesToHex(iv),
-    // TODO(johnwchadwick): node-forge typings are incomplete
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    t: forge.util.bytesToHex((cipher as any).mode.tag),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    d: forge.util.bytesToHex((cipher as any).output),
+    // @ts-expect-error node-forge typings are incomplete
+    t: forge.util.bytesToHex(cipher.mode.tag),
+    // @ts-expect-error node-forge typings are incomplete
+    d: forge.util.bytesToHex(cipher.output),
     ad: forge.util.bytesToHex(additionalData)
   };
 }
 
-interface AESMessage {
+export interface AESMessage {
   iv: string;
   t: string;
   d: string;
@@ -125,10 +115,6 @@ interface AESMessage {
 
 /**
  * Decrypt AES using a key
- *
- * @param jwkOrKey JWK or string representing symmetric key
- * @param message
- * @returns String
  */
 export function decryptAES (jwkOrKey: string|JsonWebKey, message: AESMessage) {
   // TODO: Add assertion checks for JWK
@@ -138,14 +124,13 @@ export function decryptAES (jwkOrKey: string|JsonWebKey, message: AESMessage) {
   // ~~~~~~~~~~~~~~~~~~~~ //
   // Decrypt with AES-GCM //
   // ~~~~~~~~~~~~~~~~~~~~ //
-
   const decipher = forge.cipher.createDecipher('AES-GCM', key);
+
   decipher.start({
     iv: forge.util.hexToBytes(message.iv),
     tagLength: message.t.length * 4,
-    // TODO(johnwchadwick): node-forge typings are incomplete
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tag: forge.util.hexToBytes(message.t) as any,
+    // @ts-expect-error node-forge typings are incomplete
+    tag: forge.util.hexToBytes(message.t),
     additionalData: forge.util.hexToBytes(message.ad)
   });
 
@@ -160,21 +145,14 @@ export function decryptAES (jwkOrKey: string|JsonWebKey, message: AESMessage) {
 
 /**
  * Decrypt and re-encrypt with new keys
- *
- * @param oldJwkOrKey
- * @param newJwkOrKey
- * @param message
- * @returns {{iv, t, d, ad}}
  */
-export function recryptAES (oldJwkOrKey: string, newJwkOrKey: string, message: AESMessage) {
+export function reEncryptAES (oldJwkOrKey: string, newJwkOrKey: string, message: AESMessage) {
   const decrypted = decryptAES(oldJwkOrKey, message);
   return encryptAES(newJwkOrKey, decrypted);
 }
 
 /**
  * Generate a random salt in hex
- *
- * @returns {string}
  */
 export function getRandomHex (bytes = DEFAULT_BYTE_LENGTH) {
   return forge.util.bytesToHex(forge.random.getBytesSync(bytes));
@@ -182,8 +160,6 @@ export function getRandomHex (bytes = DEFAULT_BYTE_LENGTH) {
 
 /**
  * Generate a random account Id
- *
- * @returns {string}
  */
 export function generateAccountId () {
   return `act_${getRandomHex(DEFAULT_BYTE_LENGTH)}`;
@@ -191,8 +167,6 @@ export function generateAccountId () {
 
 /**
  * Generate a random key
- *
- * @returns {Promise}
  */
 export function srpGenKey () {
   return new Promise<string>((resolve, reject) => {
@@ -236,8 +210,6 @@ export async function generateAES256Key () {
 
 /**
  * Generate RSA keypair JWK with 2048 bits and exponent 0x10001
- *
- * @returns Object
  */
 export async function generateKeyPairJWK () {
   // NOTE: Safari has crypto.webkitSubtle, but does not support RSA-OAEP-SHA256
@@ -256,8 +228,7 @@ export async function generateKeyPairJWK () {
       ['encrypt', 'decrypt']
     );
 
-    // TODO(johnwchadwick): Remove ! operator in favor of proper assertion
-
+    // TODO: Remove ! operator in favor of proper assertion
     if (!pair.publicKey || !pair.privateKey) {
       throw new Error("Unexpected error generating a keypair.");
     }
@@ -304,10 +275,6 @@ export async function generateKeyPairJWK () {
 
 /**
  * Combine email and raw salt into usable salt
- *
- * @param rawSalt
- * @param rawEmail
- * @returns {Promise}
  */
 function _hkdfSalt (rawSalt: string, rawEmail: string) {
   return new Promise<string>(resolve => {
@@ -319,9 +286,6 @@ function _hkdfSalt (rawSalt: string, rawEmail: string) {
 /**
  * Convert a JSBN BigInteger to a URL-safe version of base64 encoding. This
  * should only be used for encoding JWKs
- *
- * @param n BigInteger
- * @returns {string}
  */
 function _bigIntToB64Url (n: jsbn.BigInteger) {
   return _hexToB64Url(n.toString(16));
@@ -352,7 +316,7 @@ function _b64UrlToHex (s: string) {
  */
 async function _pbkdf2Passphrase (passphrase: string, salt: string) {
   if (!window.crypto || !window.crypto.subtle) {
-    return _pbkdf2PassphraseForge(passphrase, salt);
+    return pbkdf2PassphraseForge(passphrase, salt);
   }
 
   try {
@@ -368,26 +332,23 @@ async function _pbkdf2Passphrase (passphrase: string, salt: string) {
 
     const algo: Pbkdf2Params = {
       name: 'PBKDF2',
-      salt: new Buffer(salt, 'hex'),
+      salt: Buffer.from(salt, 'hex'),
       iterations: DEFAULT_PBKDF2_ITERATIONS,
       hash: 'SHA-256'
     };
 
     const derivedKeyRaw = await window.crypto.subtle.deriveBits(algo, k, DEFAULT_BYTE_LENGTH * 8);
-    return new Buffer(derivedKeyRaw).toString('hex');
+    return Buffer.from(derivedKeyRaw).toString('hex');
   } catch(e) {
     console.error('Unexpectedly falling back to Forge due to error:', e);
-    return _pbkdf2PassphraseForge(passphrase, salt);
+    return pbkdf2PassphraseForge(passphrase, salt);
   }
 }
 
 /**
  * Derive key from password using Forge.
- *
- * @param passphrase
- * @param salt hex representation of salt
  */
- async function _pbkdf2PassphraseForge (passphrase: string, salt: string) {
+ async function pbkdf2PassphraseForge (passphrase: string, salt: string) {
   console.log('-- Using Forge PBKDF2 --');
 
   const derivedKeyRaw = forge.pkcs5.pbkdf2(

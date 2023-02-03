@@ -67,6 +67,18 @@ interface Account {
   encSymmetricKey?: string;
 }
 
+class SessionEvents extends EventTarget {
+  login = () => {
+    this.dispatchEvent(new CustomEvent("login"));
+  }
+
+  logout = () => {
+    this.dispatchEvent(new CustomEvent("logout"));
+  }
+}
+
+export const sessionEvents = new SessionEvents();
+
 /** Create a new Account for the user */
 export async function signup(
   firstName: string,
@@ -158,7 +170,7 @@ export function signupAndLogin(
  * @param rawEmail The raw e-mail identity.
  * @param rawPassphrase The raw passphrase.
  * @param authSecret If already calculated, the derived passphrase key.
- * @param useCookies If true, the server creates a psuedo-random session cookie.
+ * @param useCookies If true, the server creates a pseudo-random session cookie.
  * @returns The SRP K value.
  */
 export async function login(
@@ -240,6 +252,8 @@ export async function logout() {
     // Not a huge deal if this fails, but we don't want it to prevent the
     // user from signing out.
     console.warn("Failed to logout", e);
+  } finally {
+    unsetSessionData();
   }
 }
 
@@ -321,7 +335,7 @@ export async function changePasswordAndEmail(
     : "";
 
   // Re-encrypt existing keys with new secret
-  const newEncSymmetricKeyJSON = crypt.recryptAES(
+  const newEncSymmetricKeyJSON = crypt.reEncryptAES(
     oldSecret,
     newSecret,
     JSON.parse(encSymmetricKey)
@@ -459,7 +473,7 @@ export async function inviteToTeam(
   const nextKeys = [];
   for (const instruction of projectKeys) {
     const publicKeyJWK = JSON.parse(publicKey);
-    const encSymmetricKey = crypt.recryptRSAWithJWK(
+    const encSymmetricKey = crypt.reEncryptRSAWithJWK(
       privateKeyJWK,
       publicKeyJWK,
       instruction.encSymmetricKey
@@ -556,10 +570,7 @@ export async function changeTeamName(teamId: string, name: string) {
 export async function githubOauthConfig() {
   return util.get<{
     clientID: string;
-  }>(
-    "/v1/oauth/github/config",
-    false
-  );
+  }>("/v1/oauth/github/config", false);
 }
 
 export async function updateEmailSubscription(unsubscribed: boolean) {
@@ -593,14 +604,14 @@ export async function signin({
     const key = await deriveSymmetricKey(currentWhoami, passphrase);
 
     box = { token, key };
-  } catch(e) {
+  } catch (e) {
     throw new Error(`Authentication failed: ${String(e)}`);
   }
 
   let loginKey: Uint8Array;
   try {
     loginKey = await decodeBase64(b64LoginKey ?? "");
-  } catch(e) {
+  } catch (e) {
     throw new Error(`Invalid login key: ${String(e)}`);
   }
 
@@ -608,13 +619,13 @@ export async function signin({
   try {
     const enc = new TextEncoder();
     token = await encodeBase64(seal(enc.encode(JSON.stringify(box)), loginKey));
-  } catch(e) {
+  } catch (e) {
     throw new Error(`Failed to create token: ${String(e)}`);
   }
 
   return {
     token
-  }
+  };
 }
 
 // ~~~~~~~~~~~~~~~~ //
@@ -676,23 +687,6 @@ export interface SessionData {
   encPrivateKey: crypt.AESMessage;
 }
 
-const loginCallbacks: LoginCallback[] = [];
-
-function _callCallbacks() {
-  const loggedIn = isLoggedIn();
-  console.log('[session] Sync state changed loggedIn=' + loggedIn);
-
-  for (const cb of loginCallbacks) {
-    if (typeof cb === 'function') {
-      cb(loggedIn);
-    }
-  }
-}
-
-export function onLoginLogout(loginCallback: LoginCallback) {
-  loginCallbacks.push(loginCallback);
-}
-
 /** Creates a session from a sessionId and derived symmetric key. */
 export async function absorbKey(sessionId: string, key: string) {
   // Get and store some extra info (salts and keys)
@@ -703,32 +697,33 @@ export async function absorbKey(sessionId: string, key: string) {
     email,
     accountId,
     firstName,
-    lastName,
+    lastName
   } = await _whoami(sessionId);
   const symmetricKeyStr = crypt.decryptAES(key, JSON.parse(encSymmetricKey));
   // Store the information for later
-  setSessionData(
-    sessionId,
+  setSessionData({
+    id: sessionId,
     accountId,
     firstName,
     lastName,
     email,
-    JSON.parse(symmetricKeyStr),
-    JSON.parse(publicKey),
-    JSON.parse(encPrivateKey),
-  );
-
-  _callCallbacks();
+    symmetricKey: JSON.parse(symmetricKeyStr),
+    publicKey: JSON.parse(publicKey),
+    encPrivateKey: JSON.parse(encPrivateKey)
+  });
 }
 
-export async function changePasswordWithToken(rawNewPassphrase: string, confirmationCode: string) {
+export async function changePasswordWithToken(
+  rawNewPassphrase: string,
+  confirmationCode: string
+) {
   // Sanitize inputs
   const newPassphrase = _sanitizePassphrase(rawNewPassphrase);
 
   const newEmail = getEmail(); // Use the same one
 
   if (!newEmail) {
-    throw new Error('Session e-mail unexpectedly not set');
+    throw new Error("Session e-mail unexpectedly not set");
   }
 
   // Fetch some things
@@ -738,39 +733,38 @@ export async function changePasswordWithToken(rawNewPassphrase: string, confirma
   const newSecret = await crypt.deriveKey(newPassphrase, newEmail, saltEnc);
   const newAuthSecret = await crypt.deriveKey(newPassphrase, newEmail, saltKey);
   const newVerifier = computeVerifier(
-      _getSrpParams(),
-      Buffer.from(saltAuth, 'hex'),
-      Buffer.from(newEmail || '', 'utf8'),
-      Buffer.from(newAuthSecret, 'hex'),
-    )
-    .toString('hex');
+    _getSrpParams(),
+    Buffer.from(saltAuth, "hex"),
+    Buffer.from(newEmail || "", "utf8"),
+    Buffer.from(newAuthSecret, "hex")
+  ).toString("hex");
   // Re-encrypt existing keys with new secret
   const symmetricKey = JSON.stringify(_getSymmetricKey());
   const newEncSymmetricKeyJSON = crypt.encryptAES(newSecret, symmetricKey);
   const newEncSymmetricKey = JSON.stringify(newEncSymmetricKeyJSON);
   return util.post(
-    '/auth/change-password',
+    "/auth/change-password",
     {
       code: confirmationCode,
       newEmail: newEmail,
       encSymmetricKey: encSymmetricKey,
       newVerifier,
-      newEncSymmetricKey,
+      newEncSymmetricKey
     },
-    getCurrentSessionId(),
+    getCurrentSessionId()
   );
 }
 
 export function sendPasswordChangeCode() {
-  return fetch.post('/auth/send-password-code', null, getCurrentSessionId());
+  return fetch.post("/auth/send-password-code", null, getCurrentSessionId());
 }
 
 export function getPublicKey() {
-  return _getSessionData()?.publicKey;
+  return getSessionData()?.publicKey;
 }
 
 export function getPrivateKey() {
-  const sessionData = _getSessionData();
+  const sessionData = getSessionData();
 
   if (!sessionData) {
     throw new Error("Can't get private key: session is blank.");
@@ -788,26 +782,26 @@ export function getPrivateKey() {
 
 export function getCurrentSessionId() {
   if (window) {
-    return window.localStorage.getItem('currentSessionId');
+    return window.localStorage.getItem("currentSessionId");
   } else {
-    return '';
+    return "";
   }
 }
 
 export function getAccountId() {
-  return _getSessionData()?.accountId;
+  return getSessionData()?.accountId;
 }
 
 export function getEmail() {
-  return _getSessionData()?.email;
+  return getSessionData()?.email;
 }
 
 export function getFirstName() {
-  return _getSessionData()?.firstName;
+  return getSessionData()?.firstName;
 }
 
 export function getLastName() {
-  return _getSessionData()?.lastName;
+  return getSessionData()?.lastName;
 }
 
 export function getFullName() {
@@ -819,73 +813,53 @@ export function isLoggedIn() {
   return !!getCurrentSessionId();
 }
 
-/** Log out and delete session data */
-export async function logout() {
-  try {
-    await fetch.post('/auth/logout', null, getCurrentSessionId());
-  } catch (error) {
-    // Not a huge deal if this fails, but we don't want it to prevent the
-    // user from signing out.
-    console.warn('Failed to logout', error);
-  }
-
-  _unsetSessionData();
-
-  _callCallbacks();
-}
-
 /** Set data for the new session and store it encrypted with the sessionId */
-export function setSessionData(
-  sessionId: string,
-  accountId: string,
-  firstName: string,
-  lastName: string,
-  email: string,
-  symmetricKey: JsonWebKey,
-  publicKey: JsonWebKey,
-  encPrivateKey: crypt.AESMessage,
-) {
-  const sessionData: SessionData = {
-    id: sessionId,
-    accountId: accountId,
-    symmetricKey: symmetricKey,
-    publicKey: publicKey,
-    encPrivateKey: encPrivateKey,
-    email: email,
-    firstName: firstName,
-    lastName: lastName,
-  };
+export function setSessionData(sessionData: {
+  id: string;
+  accountId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  symmetricKey: JsonWebKey;
+  publicKey: JsonWebKey;
+  encPrivateKey: crypt.AESMessage;
+}) {
   const dataStr = JSON.stringify(sessionData);
-  window.localStorage.setItem(_getSessionKey(sessionId), dataStr);
+  window.localStorage.setItem(_getSessionKey(sessionData.id), dataStr);
   // NOTE: We're setting this last because the stuff above might fail
-  window.localStorage.setItem('currentSessionId', sessionId);
+  window.localStorage.setItem("currentSessionId", sessionData.id);
+
+  
 }
 export async function listTeams() {
-  return fetch.get('/api/teams', getCurrentSessionId());
+  return fetch.get("/api/teams", getCurrentSessionId());
 }
 
 // ~~~~~~~~~~~~~~~~ //
 // Helper Functions //
 // ~~~~~~~~~~~~~~~~ //
 function _getSymmetricKey() {
-  return _getSessionData()?.symmetricKey;
+  return getSessionData()?.symmetricKey;
 }
 
 function _whoami(sessionId: string | null = null): Promise<WhoamiResponse> {
-  return fetch.getJson<WhoamiResponse>('/auth/whoami', sessionId || getCurrentSessionId());
+  return fetch.getJson<WhoamiResponse>(
+    "/auth/whoami",
+    sessionId || getCurrentSessionId()
+  );
 }
 
 function _getAuthSalts(email: string) {
   return fetch.post(
-    '/auth/login-s',
+    "/auth/login-s",
     {
-      email,
+      email
     },
-    getCurrentSessionId(),
+    getCurrentSessionId()
   );
 }
 
-const _getSessionData = (): Partial<SessionData> | null => {
+const getSessionData = (): Partial<SessionData> | null => {
   const sessionId = getCurrentSessionId();
 
   if (!sessionId || !window) {
@@ -899,14 +873,15 @@ const _getSessionData = (): Partial<SessionData> | null => {
   return JSON.parse(dataStr) as SessionData;
 };
 
-function _unsetSessionData() {
+function unsetSessionData() {
   const sessionId = getCurrentSessionId();
   window.localStorage.removeItem(_getSessionKey(sessionId));
-  window.localStorage.removeItem('currentSessionId');
+  window.localStorage.removeItem("currentSessionId");
+  sessionEvents.logout();
 }
 
 function _getSessionKey(sessionId: string | null) {
-  return `session__${(sessionId || '').slice(0, 10)}`;
+  return `session__${(sessionId || "").slice(0, 10)}`;
 }
 
 function _getSrpParams() {
@@ -914,5 +889,6 @@ function _getSrpParams() {
 }
 
 function _sanitizePassphrase(passphrase: string) {
-  return passphrase.trim().normalize('NFKD');
+  return passphrase.trim().normalize("NFKD");
 }
+

@@ -522,6 +522,7 @@ export class Client {
   }
 }
 
+// Example Server-side SRP implementation
 export class Server {
   _private: {
     params: Params;

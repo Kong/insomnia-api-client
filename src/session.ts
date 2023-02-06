@@ -1,7 +1,6 @@
 import { Client, computeVerifier, params } from "./srp/srp";
 import type * as schema from "./schema";
 import * as crypt from "./crypt";
-import * as util from "./fetch";
 import { Buffer } from "buffer";
 import { decodeBase64, encodeBase64 } from "./base64";
 import { seal } from "./sealedbox";
@@ -70,11 +69,11 @@ interface Account {
 class SessionEvents extends EventTarget {
   login = () => {
     this.dispatchEvent(new CustomEvent("login"));
-  }
+  };
 
   logout = () => {
     this.dispatchEvent(new CustomEvent("logout"));
-  }
+  };
 }
 
 export const sessionEvents = new SessionEvents();
@@ -132,7 +131,13 @@ export async function signup(
   account.encPrivateKey = JSON.stringify(encPrivateJWKMessage);
   account.encSymmetricKey = JSON.stringify(encSymmetricJWKMessage);
 
-  const signupData = await util.post("/auth/signup", account);
+  const signupData = await fetch("/auth/signup", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(account)
+  });
 
   if (loginAfter) {
     await login(rawEmail, rawPassphrase, authSecret);
@@ -142,7 +147,9 @@ export async function signup(
 }
 
 export function deleteAccount() {
-  return util.del("/auth/delete-account");
+  return fetch("/auth/delete-account", {
+    method: "DELETE"
+  });
 }
 
 export function signupAndLogin(
@@ -202,10 +209,16 @@ export async function login(
     Buffer.from(secret1, "hex")
   );
   const srpA = c.computeA().toString("hex");
-  const { sessionStarterId, srpB } = await util.post<{
-    sessionStarterId: string;
-    srpB: string;
-  }>("/auth/login-a", { srpA, email });
+  const { sessionStarterId, srpB } = await fetch("/auth/login-a", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      srpA,
+      email
+    })
+  }).then((res) => res.json());
 
   // ~~~~~~~~~~~~~~~~~~~~~ //
   // Compute and Submit M1 //
@@ -213,13 +226,17 @@ export async function login(
 
   c.setB(Buffer.from(srpB, "hex"));
   const srpM1 = c.computeM1().toString("hex");
-  const { srpM2 } = await util.post<{
-    srpM2: string;
-  }>("/auth/login-m1", {
-    srpM1,
-    sessionStarterId,
-    useCookies
-  });
+  const { srpM2 } = await fetch("/auth/login-m1", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      srpM1,
+      sessionStarterId,
+      useCookies
+    })
+  }).then((res) => res.json());
 
   // ~~~~~~~~~~~~~~~~~~~~~~~~~ //
   // Verify Server Identity M2 //
@@ -237,17 +254,25 @@ export function subscribe(
   quantity: number,
   memo: string
 ) {
-  return util.post("/api/billing/subscriptions", {
-    token: tokenId,
-    quantity: quantity,
-    plan: planId,
-    memo: memo
+  return fetch("/api/billing/subscriptions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      token: tokenId,
+      quantity: quantity,
+      plan: planId,
+      memo: memo
+    })
   });
 }
 
 export async function logout() {
   try {
-    await util.post("/auth/logout");
+    await fetch("/auth/logout", {
+      method: "POST"
+    });
   } catch (e) {
     // Not a huge deal if this fails, but we don't want it to prevent the
     // user from signing out.
@@ -258,39 +283,48 @@ export async function logout() {
 }
 
 export async function cancelAccount() {
-  await util.del("/api/billing/subscriptions");
+  await fetch("/api/billing/subscriptions", {
+    method: "DELETE"
+  });
 }
 
 export async function whoami() {
-  return util.get<schema.WhoamiResponse>("/auth/whoami");
+  return fetch("/auth/whoami").then((res) => res.json()) as Promise<schema.WhoamiResponse>;
 }
 
 export async function keys() {
-  return util.get<schema.APIKeysResponse>("/v1/keys");
+  return fetch("/v1/keys");
 }
 
 export async function invoices() {
-  return util.get<Invoice[]>("/api/billing/invoices");
+  return fetch("/api/billing/invoices");
 }
 
 export async function getInvoice(invoiceId: string) {
-  return util.get<InvoiceLink>("/api/billing/invoices/" + invoiceId);
+  return fetch("/api/billing/invoices/" + invoiceId);
 }
 
 export async function verify() {
-  return util.post("/auth/verify");
+  return fetch("/auth/verify", {
+    method: "POST"
+  });
 }
 
 export async function billingDetails() {
   try {
-    return await util.get<BillingDetails>("/api/billing/details");
+    return await fetch("/api/billing/details");
   } catch (e) {
     return null;
   }
 }
 
 export function getAuthSalts(email: string) {
-  return util.post<AuthSalts>("/auth/login-s", { email });
+  return fetch("/auth/login-s", {
+    method: "POST",
+    body: JSON.stringify({
+      email
+    })
+  }).then((res) => res.json());
 }
 
 export async function changePasswordAndEmail(
@@ -342,14 +376,20 @@ export async function changePasswordAndEmail(
   );
   const newEncSymmetricKey = JSON.stringify(newEncSymmetricKeyJSON);
 
-  return util.post(`/auth/change-password`, {
-    verifier: oldVerifier,
-    newEmail,
-    newFirstName,
-    newLastName,
-    encSymmetricKey: encSymmetricKey,
-    newVerifier,
-    newEncSymmetricKey
+  return fetch(`/auth/change-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      verifier: oldVerifier,
+      newEmail,
+      newFirstName,
+      newLastName,
+      encSymmetricKey: encSymmetricKey,
+      newVerifier,
+      newEncSymmetricKey
+    })
   });
 }
 
@@ -424,37 +464,31 @@ export async function inviteToTeam(
   rawPassphrase: string | null
 ) {
   // Ask the server what we need to do to invite the member
-  const { data, errors } = await util.post<{
-    data: {
-      teamAddInstructions: {
-        accountId: string;
-        publicKey: string;
-        projectKeys: {
-          projectId: string;
-          encSymmetricKey: string;
-        }[];
-      };
-    };
-    errors: Error[];
-  }>(`/graphql?teamAddInstructions`, {
-    variables: {
-      teamId,
-      email: emailToInvite
+  const { data, errors } = await fetch(`/graphql?teamAddInstructions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
     },
-    query: `
-      query ($email: String!, $teamId: ID!) {
-         teamAddInstructions(email: $email, teamId: $teamId) {
-            accountId
-            publicKey
-
-            projectKeys {
-              projectId
-              encSymmetricKey
-            }
-         }
-      }
-    `
-  });
+    body: JSON.stringify({
+      variables: {
+        teamId,
+        email: emailToInvite
+      },
+      query: `
+          query ($email: String!, $teamId: ID!) {
+             teamAddInstructions(email: $email, teamId: $teamId) {
+                accountId
+                publicKey
+    
+                projectKeys {
+                  projectId
+                  encSymmetricKey
+                }
+             }
+          }
+        `
+    })
+  }).then(res => res.json());
 
   if (errors && errors.length) {
     console.error("Failed to get instructions for adding to team", errors);
@@ -486,20 +520,24 @@ export async function inviteToTeam(
 
   // Actually invite the member
   // Ask the server what we need to do to invite the member
-  const { errors: errorsMutation } = await util.post<{
-    errors: Error[];
-  }>(`/graphql?teamAdd`, {
-    variables: {
-      accountId,
-      teamId,
-      keys: nextKeys
+  const { errors: errorsMutation } = await fetch(`/graphql?teamAdd`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
     },
-    query: `
-      mutation ($accountId: ID!, $teamId: ID!, $keys: [TeamAddKeyInput!]!) {
-        teamAdd(accountId: $accountId, teamId: $teamId, keys: $keys)
-      }
-    `
-  });
+    body: JSON.stringify({
+      variables: {
+        accountId,
+        teamId,
+        keys: nextKeys
+      },
+      query: `
+        mutation ($accountId: ID!, $teamId: ID!, $keys: [TeamAddKeyInput!]!) {
+          teamAdd(accountId: $accountId, teamId: $teamId, keys: $keys)
+        }
+      `
+    })
+  }).then(res => res.json());
 
   if (errorsMutation && errorsMutation.length) {
     console.error("Failed adding user to team", errorsMutation);
@@ -508,22 +546,28 @@ export async function inviteToTeam(
 }
 
 export async function createTeam() {
-  return util.post(`/api/teams`);
+  return fetch(`/api/teams`, {
+    method: "POST"
+  });
 }
 
 export async function leaveTeam(teamId: string) {
-  const { errors } = await util.post<{
-    errors: Error[];
-  }>(`/graphql?teamLeave`, {
-    variables: {
-      teamId
+  const { errors } = await fetch(`/graphql?teamLeave`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
     },
-    query: `
-      mutation ($teamId: ID!) {
-        teamLeave(teamId: $teamId)
-      }
-    `
-  });
+    body: JSON.stringify({
+      variables: {
+        teamId
+      },
+      query: `
+          mutation ($teamId: ID!) {
+            teamLeave(teamId: $teamId)
+          }
+        `
+    })
+  }).then(res => res.json());
 
   if (errors && errors.length) {
     console.error("Failed to leave team", errors);
@@ -536,26 +580,36 @@ export async function changeTeamAdminStatus(
   accountId: string,
   isAdmin: boolean
 ) {
-  await util.patch(`/api/teams/${teamId}/admin-status`, {
-    isAdmin,
-    accountId
-  });
+  await fetch(`/api/teams/${teamId}/admin-status`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      isAdmin,
+      accountId
+    })
+  }).then(res => res.json());
 }
 
 export async function removeFromTeam(teamId: string, accountId: string) {
-  const { errors } = await util.post<{
-    errors: Error[];
-  }>(`/graphql?teamRemove`, {
-    variables: {
-      accountIdToRemove: accountId,
-      teamId
+  const { errors } = await fetch(`/graphql?teamRemove`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
     },
-    query: `
-      mutation ($accountIdToRemove: ID!, $teamId: ID!) {
-        teamRemove(accountIdToRemove: $accountIdToRemove, teamId: $teamId)
-      }
-    `
-  });
+    body: JSON.stringify({
+      variables: {
+        accountIdToRemove: accountId,
+        teamId
+      },
+      query: `
+          mutation ($accountIdToRemove: ID!, $teamId: ID!) {
+            teamRemove(accountIdToRemove: $accountIdToRemove, teamId: $teamId)
+          }
+        `
+    })
+  }).then(res => res.json());
 
   if (errors && errors.length) {
     console.error("Failed to remove member", errors);
@@ -564,20 +618,30 @@ export async function removeFromTeam(teamId: string, accountId: string) {
 }
 
 export async function changeTeamName(teamId: string, name: string) {
-  return util.patch(`/api/teams/${teamId}`, { name });
+  return fetch(`/api/teams/${teamId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name
+    })
+  });
 }
 
 export async function githubOauthConfig() {
-  return util.get<{
-    clientID: string;
-  }>("/v1/oauth/github/config", false);
+  return fetch("/v1/oauth/github/config").then(res => res.json());
 }
 
 export async function updateEmailSubscription(unsubscribed: boolean) {
   if (unsubscribed) {
-    return util.post(`/v1/email/unsubscribe`);
+    return fetch(`/v1/email/unsubscribe`, {
+      method: "POST"
+    }).then(res => res.json());
   } else {
-    return util.post(`/v1/email/subscribe`);
+    return fetch(`/v1/email/subscribe`, {
+      method: "POST"
+    }).then(res => res.json());
   }
 }
 
@@ -652,8 +716,6 @@ function _sanitizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-type LoginCallback = (isLoggedIn: boolean) => void;
-
 export interface WhoamiResponse {
   sessionAge: number;
   accountId: string;
@@ -715,7 +777,8 @@ export async function absorbKey(sessionId: string, key: string) {
 
 export async function changePasswordWithToken(
   rawNewPassphrase: string,
-  confirmationCode: string
+  confirmationCode: string,
+  sessionId: string | null = null
 ) {
   // Sanitize inputs
   const newPassphrase = _sanitizePassphrase(rawNewPassphrase);
@@ -727,8 +790,8 @@ export async function changePasswordWithToken(
   }
 
   // Fetch some things
-  const { saltEnc, encSymmetricKey } = await _whoami();
-  const { saltKey, saltAuth } = await _getAuthSalts(newEmail);
+  const { saltEnc, encSymmetricKey } = await _whoami(sessionId);
+  const { saltKey, saltAuth } = await _getAuthSalts(newEmail, sessionId);
   // Generate some secrets for the user based on password
   const newSecret = await crypt.deriveKey(newPassphrase, newEmail, saltEnc);
   const newAuthSecret = await crypt.deriveKey(newPassphrase, newEmail, saltKey);
@@ -742,21 +805,28 @@ export async function changePasswordWithToken(
   const symmetricKey = JSON.stringify(_getSymmetricKey());
   const newEncSymmetricKeyJSON = crypt.encryptAES(newSecret, symmetricKey);
   const newEncSymmetricKey = JSON.stringify(newEncSymmetricKeyJSON);
-  return util.post(
-    "/auth/change-password",
-    {
+  return fetch("/auth/change-password", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
       code: confirmationCode,
       newEmail: newEmail,
       encSymmetricKey: encSymmetricKey,
       newVerifier,
       newEncSymmetricKey
-    },
-    getCurrentSessionId()
-  );
+    })
+  }).then((res) => res.json());
 }
 
 export function sendPasswordChangeCode() {
-  return fetch.post("/auth/send-password-code", null, getCurrentSessionId());
+  return fetch("/auth/send-password-code", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  }).then((res) => res.json());
 }
 
 export function getPublicKey() {
@@ -828,11 +898,14 @@ export function setSessionData(sessionData: {
   window.localStorage.setItem(_getSessionKey(sessionData.id), dataStr);
   // NOTE: We're setting this last because the stuff above might fail
   window.localStorage.setItem("currentSessionId", sessionData.id);
-
-  
 }
-export async function listTeams() {
-  return fetch.get("/api/teams", getCurrentSessionId());
+export async function listTeams(sessionId: string | null) {
+  return fetch("/api/teams", {
+    headers: {
+      include: "credentials",
+      ...(sessionId ? { Authorization: "Bearer " + sessionId } : {})
+    }
+  });
 }
 
 // ~~~~~~~~~~~~~~~~ //
@@ -842,21 +915,26 @@ function _getSymmetricKey() {
   return getSessionData()?.symmetricKey;
 }
 
-function _whoami(sessionId: string | null = null): Promise<WhoamiResponse> {
-  return fetch.getJson<WhoamiResponse>(
-    "/auth/whoami",
-    sessionId || getCurrentSessionId()
-  );
+function _whoami(sessionId: string | null): Promise<WhoamiResponse> {
+  return fetch("/auth/whoami", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      include: "credentials",
+      ...(sessionId ? { Authorization: "Bearer " + sessionId } : {})
+    }
+  }).then((res) => res.json());
 }
 
-function _getAuthSalts(email: string) {
-  return fetch.post(
-    "/auth/login-s",
-    {
-      email
+function _getAuthSalts(email: string, sessionId: string | null) {
+  return fetch("/auth/login-s", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(sessionId ? { Authorization: "Bearer " + sessionId } : {})
     },
-    getCurrentSessionId()
-  );
+    body: JSON.stringify({ email })
+  }).then((res) => res.json());
 }
 
 const getSessionData = (): Partial<SessionData> | null => {
@@ -891,4 +969,3 @@ function _getSrpParams() {
 function _sanitizePassphrase(passphrase: string) {
   return passphrase.trim().normalize("NFKD");
 }
-

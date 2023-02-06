@@ -191,7 +191,8 @@
         "maxTeamMembers",
         "passwordSet",
         "canUnsetPassword",
-        "unsubscribedFromEmails"
+        "unsubscribedFromEmails",
+        "customerId"
       ],
       "properties": {
         "sessionAge": {
@@ -260,6 +261,9 @@
         },
         "unsubscribedFromEmails": {
           "type": "boolean"
+        },
+        "customerId": {
+          "type": "string"
         }
       },
       "additionalProperties": false,

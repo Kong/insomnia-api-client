@@ -1,10 +1,16 @@
-import axios, { AxiosError, AxiosResponse } from 'axios';
-import { encodeBase64, decodeBase64 } from '../base64';
-import { BoxAcquireRequest, BoxAcquireResponse, BoxProvideRequest } from '../generated/schema';
-import { open, seal } from '../sealedbox';
-import { globalConfig } from './fetch';
+import { encodeBase64, decodeBase64 } from "../base64";
+import {
+  BoxAcquireRequest,
+  BoxAcquireResponse,
+  BoxProvideRequest
+} from "../schema";
+import { open, seal } from "../sealedbox";
 
-export async function provideBox<T>(baseUri: string, data: T, publicKey: Uint8Array): Promise<void> {
+export async function provideBox<T>(
+  baseUri: string,
+  data: T,
+  publicKey: Uint8Array
+): Promise<void> {
   const enc = new TextEncoder();
 
   // Encode data to JSON, to bytes
@@ -16,35 +22,45 @@ export async function provideBox<T>(baseUri: string, data: T, publicKey: Uint8Ar
   // Base64 parameters into request
   const body: BoxProvideRequest = {
     key: await encodeBase64(publicKey),
-    data: await encodeBase64(sealedBox),
+    data: await encodeBase64(sealedBox)
   };
 
   // Send request
-  await axios.post(`${baseUri}/v1/box/provide`, body, globalConfig);
+  await fetch(`${baseUri}/v1/box/provide`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  }).then((res) => res.json());
 }
 
-export async function acquireBox<T>(baseUri: string, publicKey: Uint8Array, secretKey: Uint8Array): Promise<T|null> {
+export async function acquireBox<T>(
+  baseUri: string,
+  publicKey: Uint8Array,
+  secretKey: Uint8Array
+): Promise<T | null> {
   const dec = new TextDecoder();
 
   // Base64 parameters into request
   const body: BoxAcquireRequest = {
-    key: await encodeBase64(publicKey),
+    key: await encodeBase64(publicKey)
   };
 
-  let response: AxiosResponse<any>;
-  // Send request
-  try {
-    response = await axios.post(`${baseUri}/v1/box/acquire`, body, globalConfig);
-  } catch(error) {
-    const axiosError = error as AxiosError
-    if (axiosError.isAxiosError && axiosError.response?.status === 404) {
-      return null;
-    }
-    throw error;
-  }
+  let response: Response | null = null;
 
+  // Send request
+  const responseData: BoxAcquireResponse = await fetch(
+    `${baseUri}/v1/box/acquire`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    }
+  ).then((res) => res.json());
   // Decode request as JSON
-  const responseData: BoxAcquireResponse = response.data;
 
   // Decode base64'd string
   const sealedBox = await decodeBase64(responseData.data);

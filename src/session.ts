@@ -1,5 +1,5 @@
 import { Client, computeVerifier, params } from "./srp/srp";
-import type * as schema from "./generated/schema";
+import type * as schema from "./schema";
 import * as crypt from "./crypt";
 import * as util from "./fetch";
 import { Buffer } from "buffer";

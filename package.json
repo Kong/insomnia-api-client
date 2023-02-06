@@ -6,8 +6,7 @@
   "module": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npm run generate_schema && esr esbuild.ts && npm run generate_types",
-    "generate_schema": "json2ts --unreachableDefinitions=true < schema.json > src/generated/schema.ts",
+    "build": "esr esbuild.ts && npm run generate_types",
     "generate_types": "tsc"
   },
   "repository": {
@@ -21,7 +20,6 @@
   },
   "homepage": "https://github.com/Kong/insomnia-api-client#readme",
   "dependencies": {
-    "axios": "^0.21.4",
     "blakejs": "^1.2.1",
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.0",

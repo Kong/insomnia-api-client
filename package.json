@@ -1,6 +1,6 @@
 {
   "name": "@getinsomnia/api-client",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Client code for the Insomnia API.",
   "main": "index.js",
   "scripts": {

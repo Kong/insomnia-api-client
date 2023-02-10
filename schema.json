@@ -192,7 +192,8 @@
         "passwordSet",
         "canUnsetPassword",
         "unsubscribedFromEmails",
-        "customerId"
+        "customerId",
+        "subscriptionId"
       ],
       "properties": {
         "sessionAge": {
@@ -263,6 +264,9 @@
           "type": "boolean"
         },
         "customerId": {
+          "type": "string"
+        },
+        "subscriptionId": {
           "type": "string"
         }
       },

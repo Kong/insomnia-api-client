@@ -3,7 +3,6 @@
   "required": [
     "WhoamiResponse",
     "APIKeysResponse",
-    "GithubOAuthConfigResponse",
     "Auth0OAuthResponse",
     "BoxAcquireRequest",
     "BoxAcquireResponse",
@@ -19,10 +18,6 @@
     "APIKeysResponse": {
       "$schema": "http://json-schema.org/draft-04/schema#",
       "$ref": "#/definitions/APIKeysResponse"
-    },
-    "GithubOAuthConfigResponse": {
-      "$schema": "http://json-schema.org/draft-04/schema#",
-      "$ref": "#/definitions/GithubOAuthConfigResponse"
     },
     "Auth0OAuthResponse": {
       "$schema": "http://json-schema.org/draft-04/schema#",
@@ -58,18 +53,6 @@
       ],
       "properties": {
         "stripeKey": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object"
-    },
-    "GithubOAuthConfigResponse": {
-      "required": [
-        "clientID"
-      ],
-      "properties": {
-        "clientID": {
           "type": "string"
         }
       },
@@ -210,7 +193,8 @@
         "canUnsetPassword",
         "unsubscribedFromEmails",
         "customerId",
-        "subscriptionId"
+        "subscriptionId",
+        "encryptionEnabled"
       ],
       "properties": {
         "sessionAge": {
@@ -285,6 +269,9 @@
         },
         "subscriptionId": {
           "type": "string"
+        },
+        "encryptionEnabled": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false,
